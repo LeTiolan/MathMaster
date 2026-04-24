@@ -358,7 +358,10 @@ body.zen #petal-container { display: block; }
                 <label class="checkbox-wrapper"><input type="checkbox" id="op-div"> Division (÷)</label>
             </div>
             <p id="error-msg" style="color: var(--danger); font-weight: bold; height: 20px;"></p>
-            <button id="start-btn">Play Now</button>
+           <div class="btn-group">
+    <button id="start-survival-btn" class="btn-survival">Play Survival</button>
+    <button id="start-zen-btn" class="btn-zen">Zen Mode 🌸</button>
+</div>
         </div>
 
         <div id="game-screen" class="hidden">
@@ -380,7 +383,8 @@ body.zen #petal-container { display: block; }
             <div id="problem-container">
                 </div>
             
-            <p id="feedback"></p>
+<p id="feedback"></p>
+            <button id="end-zen-btn" class="btn-end-zen hidden">End Practice</button>
         </div>
 
         <div id="end-screen" class="hidden">
@@ -393,18 +397,20 @@ body.zen #petal-container { display: block; }
     </div>
 
     <script>
-        // --- Game State Variables ---
+// --- Game State Variables ---
         const START_TIME = 45.0; // Decimal for smoother UI
         const MAX_TIME = 60.0;
         let score = 0;
         let timeLeft = START_TIME;
         let timerId;
+        let petalInterval;
         
         let expectedAnswer = 0;
         let streak = 0;
         let multiplier = 1;
         let level = 1;
         let activeOperations = [];
+        let isZenMode = false;
         
         // Power-up States
         let freezeTimeLeft = 0;
@@ -417,8 +423,10 @@ body.zen #petal-container { display: block; }
         const startScreen = document.getElementById('start-screen');
         const gameScreen = document.getElementById('game-screen');
         const endScreen = document.getElementById('end-screen');
-        const startBtn = document.getElementById('start-btn');
+        const startSurvivalBtn = document.getElementById('start-survival-btn');
+        const startZenBtn = document.getElementById('start-zen-btn');
         const restartBtn = document.getElementById('restart-btn');
+        const endZenBtn = document.getElementById('end-zen-btn');
         
         const problemContainer = document.getElementById('problem-container');
         let answerInput; // Will be created dynamically
@@ -427,6 +435,7 @@ body.zen #petal-container { display: block; }
         const levelDisplay = document.getElementById('level-display');
         const streakDisplay = document.getElementById('streak-display');
         const timeDisplay = document.getElementById('time-display');
+        const timerUI = document.querySelector('.timer-container');
         const timerBar = document.getElementById('timer-bar');
         const feedbackEl = document.getElementById('feedback');
         
@@ -434,16 +443,42 @@ body.zen #petal-container { display: block; }
         const accuracyDisplay = document.getElementById('accuracy-display');
         const errorMsg = document.getElementById('error-msg');
         const hsBadge = document.getElementById('hs-badge');
+        const petalContainer = document.getElementById('petal-container');
+        const endTitle = endScreen.querySelector('h2');
 
         // Init
         hsBadge.textContent = `High Score: ${highScore}`;
 
         // --- Event Listeners ---
-        startBtn.addEventListener('click', startGame);
+        startSurvivalBtn.addEventListener('click', () => startGame(false));
+        startZenBtn.addEventListener('click', () => startGame(true));
+        endZenBtn.addEventListener('click', endGame);
+        
         restartBtn.addEventListener('click', () => {
             endScreen.classList.add('hidden');
             startScreen.classList.remove('hidden');
+            document.body.classList.remove('zen');
+            clearInterval(petalInterval);
+            petalContainer.innerHTML = '';
         });
+
+      // --- Petal Generator for Zen Mode ---
+        function createPetal() {
+            const petal = document.createElement('div');
+            petal.classList.add('petal');
+            
+            const size = Math.random() * 10 + 10;
+            petal.style.width = `${size}px`;
+            petal.style.height = `${size}px`;
+            petal.style.left = `${Math.random() * 100}vw`;
+            petal.style.animationDuration = `${Math.random() * 5 + 5}s`;
+            
+            petalContainer.appendChild(petal);
+            
+            setTimeout(() => {
+                if (petalContainer.contains(petal)) petal.remove();
+            }, 10000);
+        }
 
         // Function to bind enter key to the dynamically created input
         function bindInput() {
@@ -455,7 +490,8 @@ body.zen #petal-container { display: block; }
         }
 
         // --- Core Game Logic ---
-        function startGame() {
+     function startGame(zen) {
+            isZenMode = zen;
             activeOperations = [];
             if(document.getElementById('op-add').checked) activeOperations.push('+');
             if(document.getElementById('op-sub').checked) activeOperations.push('-');
@@ -472,6 +508,22 @@ body.zen #petal-container { display: block; }
             freezeTimeLeft = 0; totalAnswered = 0; totalCorrect = 0;
             document.body.classList.remove('frozen');
 
+            if (isZenMode) {
+                document.body.classList.add('zen');
+                timerUI.classList.add('hidden');
+                timeDisplay.classList.add('hidden');
+                endZenBtn.classList.remove('hidden');
+                hsBadge.classList.add('hidden');
+                petalInterval = setInterval(createPetal, 400);
+            } else {
+                document.body.classList.remove('zen');
+                timerUI.classList.remove('hidden');
+                timeDisplay.classList.remove('hidden');
+                endZenBtn.classList.add('hidden');
+                hsBadge.classList.remove('hidden');
+                timerId = setInterval(updateTimer, 100); 
+            }
+
             updateScoreboard();
             feedbackEl.className = '';
             feedbackEl.textContent = '';
@@ -480,8 +532,6 @@ body.zen #petal-container { display: block; }
             gameScreen.classList.remove('hidden');
             
             generateProblem();
-            // Update every 100ms for smoother timer bar
-            timerId = setInterval(updateTimer, 100); 
         }
 
         function generateProblem() {
@@ -566,7 +616,7 @@ body.zen #petal-container { display: block; }
             setTimeout(() => el.remove(), 1000);
         }
 
-        function checkAnswer() {
+      function checkAnswer() {
             const userAnswer = parseInt(answerInput.value, 10);
             if (isNaN(userAnswer)) return;
 
@@ -582,21 +632,26 @@ body.zen #petal-container { display: block; }
                 const pointsEarned = 10 * multiplier;
                 score += pointsEarned;
 
-                // Survival Time Mechanics
-                if (freezeTimeLeft <= 0) {
-                    timeLeft = Math.min(timeLeft + 2.0, MAX_TIME); // +2 Seconds
-                    spawnFloatingText("+2s", true);
-                }
+                if (!isZenMode) {
+                    // Survival Time Mechanics
+                    if (freezeTimeLeft <= 0) {
+                        timeLeft = Math.min(timeLeft + 2.0, MAX_TIME); // +2 Seconds
+                        spawnFloatingText("+2s", true);
+                    }
 
-                // Time Freeze Power-up every 10 streaks
-                if (streak % 10 === 0) {
-                    freezeTimeLeft = 5.0; // 5 seconds of freeze
-                    document.body.classList.add('frozen');
-                    feedbackEl.textContent = "TIME FROZEN!";
-                    feedbackEl.className = 'freeze-text';
-                    spawnFloatingText("FREEZE!", true);
+                    // Time Freeze Power-up every 10 streaks
+                    if (streak % 10 === 0) {
+                        freezeTimeLeft = 5.0; // 5 seconds of freeze
+                        document.body.classList.add('frozen');
+                        feedbackEl.textContent = "TIME FROZEN!";
+                        feedbackEl.className = 'freeze-text';
+                        spawnFloatingText("FREEZE!", true);
+                    } else {
+                        feedbackEl.textContent = `+${pointsEarned}!`;
+                        feedbackEl.className = 'correct';
+                    }
                 } else {
-                    feedbackEl.textContent = `+${pointsEarned}!`;
+                    feedbackEl.textContent = "Beautiful.";
                     feedbackEl.className = 'correct';
                 }
 
@@ -607,41 +662,54 @@ body.zen #petal-container { display: block; }
                 }
 
                 answerInput.classList.add('pop');
+                generateProblem();
 
             } else {
                 streak = 0;
                 multiplier = 1;
                 
-                // Penalize Time & Score
-                if (freezeTimeLeft > 0) {
-                    freezeTimeLeft = 0; // Break freeze early on mistake
-                    document.body.classList.remove('frozen');
+                if (!isZenMode) {
+                    // Penalize Time & Score
+                    if (freezeTimeLeft > 0) {
+                        freezeTimeLeft = 0; // Break freeze early on mistake
+                        document.body.classList.remove('frozen');
+                    }
+                    
+                    timeLeft -= 4.0; // -4 Seconds penalty
+                    score = Math.max(0, score - 15);
+                    
+                    spawnFloatingText("-4s", false);
+                    feedbackEl.textContent = `Correct: ${expectedAnswer}`;
+                    feedbackEl.className = 'incorrect';
+                    answerInput.classList.add('shake');
+                    generateProblem();
+                } else {
+                    feedbackEl.textContent = `Gently, try again.`;
+                    feedbackEl.className = 'incorrect';
+                    answerInput.value = ''; 
                 }
-                
-                timeLeft -= 4.0; // -4 Seconds penalty
-                score = Math.max(0, score - 15);
-                
-                spawnFloatingText("-4s", false);
-                feedbackEl.textContent = `Correct: ${expectedAnswer}`;
-                feedbackEl.className = 'incorrect';
-                answerInput.classList.add('shake');
             }
             
             updateScoreboard();
-            generateProblem();
         }
 
-        function updateScoreboard() {
+     function updateScoreboard() {
             scoreDisplay.innerHTML = `Score: ${score} <span id="level-display">Level ${level}</span>`;
             
-            let emoji = '🔥';
-            if (freezeTimeLeft > 0) emoji = '❄️';
-            else if (streak >= 10) emoji = '⚡';
+            let emoji = isZenMode ? '🌸' : '🔥';
+            if (!isZenMode && freezeTimeLeft > 0) emoji = '❄️';
+            else if (!isZenMode && streak >= 10) emoji = '⚡';
             
-            streakDisplay.innerHTML = `${emoji} x${multiplier} <span id="time-display">${Math.max(0, timeLeft).toFixed(1)}s</span>`;
+            if (isZenMode) {
+                streakDisplay.innerHTML = `${emoji} x${multiplier}`;
+            } else {
+                streakDisplay.innerHTML = `${emoji} x${multiplier} <span id="time-display">${Math.max(0, timeLeft).toFixed(1)}s</span>`;
+            }
         }
 
         function updateTimer() {
+            if (isZenMode) return;
+            
             // Check freeze state
             if (freezeTimeLeft > 0) {
                 freezeTimeLeft -= 0.1;
@@ -670,22 +738,33 @@ body.zen #petal-container { display: block; }
         }
 
         function endGame() {
-            clearInterval(timerId);
-            gameScreen.classList.add('hidden');
-            endScreen.classList.remove('hidden');
+            if (!isZenMode) clearInterval(timerId);
             document.body.classList.remove('frozen');
             
-            finalScoreEl.textContent = score;
+            gameScreen.classList.add('hidden');
+            endScreen.classList.remove('hidden');
             
-            if (score > highScore) {
-                highScore = score;
-                localStorage.setItem('mathMasterHighScore', highScore);
-                hsBadge.textContent = `High Score: ${highScore}`;
-                finalScoreEl.innerHTML += `<br><span style="font-size: 20px; color: var(--success);">New High Score!</span>`;
+            finalScoreEl.textContent = score;
+            finalScoreEl.style.color = isZenMode ? 'var(--zen-primary)' : 'var(--warning)';
+            
+            if (isZenMode) {
+                endTitle.textContent = "Session Complete";
+                endTitle.style.color = "var(--zen-text)";
+            } else {
+                endTitle.textContent = "Out of Time!";
+                endTitle.style.color = "#fff";
+                
+                if (score > highScore) {
+                    highScore = score;
+                    localStorage.setItem('mathMasterHighScore', highScore);
+                    hsBadge.textContent = `High Score: ${highScore}`;
+                    finalScoreEl.innerHTML += `<br><span style="font-size: 20px; color: var(--success);">New High Score!</span>`;
+                }
             }
             
             let accuracy = totalAnswered > 0 ? Math.round((totalCorrect / totalAnswered) * 100) : 0;
             accuracyDisplay.textContent = `Accuracy: ${accuracy}% (${totalCorrect} / ${totalAnswered})`;
+            accuracyDisplay.style.color = isZenMode ? "var(--zen-text)" : "#ddd";
         }
     </script>
 </body>
