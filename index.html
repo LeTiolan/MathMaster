@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Master - Advanced Gameplay</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800;900&display=swap');
+
+        :root {
+            --primary: #4facfe;
+            --secondary: #00f2fe;
+            --success: #00b894;
+            --danger: #ff7675;
+            --warning: #fdcb6e;
+            --freeze: #74b9ff;
+            --dark: #2d3436;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #fff;
+            overflow: hidden;
+            transition: background 0.5s;
+        }
+
+        /* Time Freeze Background */
+        body.frozen {
+            background: linear-gradient(135deg, #487eb0 0%, #82ccdd 100%);
+        }
+
+        .game-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 40px;
+            border-radius: 24px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            width: 90%;
+            max-width: 550px;
+            position: relative;
+            z-index: 10;
+        }
+
+        h1 {
+            color: #fff;
+            font-size: 48px;
+            font-weight: 900;
+            margin: 0 0 5px 0;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            text-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .high-score-badge {
+            background: var(--warning);
+            color: var(--dark);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: 800;
+            font-size: 14px;
+            display: inline-block;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 10px rgba(253, 203, 110, 0.4);
+        }
+
+        /* Settings Grid */
+        .settings {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 30px;
+            background: rgba(0,0,0,0.2);
+            padding: 20px;
+            border-radius: 16px;
+        }
+
+        .checkbox-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+
+        .hidden { display: none !important; }
+
+        button {
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            padding: 16px 45px;
+            font-size: 24px;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 900;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 10px 20px rgba(79, 172, 254, 0.4);
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        button:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 15px 25px rgba(79, 172, 254, 0.5);
+        }
+
+        button:active {
+            transform: translateY(2px);
+        }
+
+        /* Active Game Stats */
+        .stats-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .stat-box {
+            background: rgba(255,255,255,0.2);
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-weight: 800;
+            font-size: 20px;
+            border: 1px solid rgba(255,255,255,0.3);
+            text-align: center;
+            min-width: 120px;
+        }
+
+        #level-display, #time-display {
+            color: var(--warning);
+            font-size: 16px;
+            margin-top: 5px;
+            display: block;
+        }
+
+        /* Timer Bar */
+        .timer-container {
+            width: 100%;
+            height: 20px;
+            background-color: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            margin-bottom: 30px;
+            overflow: hidden;
+            border: 2px solid rgba(255,255,255,0.1);
+            position: relative;
+        }
+
+        #timer-bar {
+            height: 100%;
+            width: 100%;
+            background-color: var(--success);
+            transition: width 0.3s linear, background-color 0.3s;
+        }
+        
+        .frozen #timer-bar {
+            background-color: var(--freeze) !important;
+            box-shadow: 0 0 15px var(--freeze);
+        }
+
+        /* Problem Area */
+        #problem-container {
+            font-size: 65px;
+            font-weight: 900;
+            margin: 20px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        input[type="number"] {
+            width: 120px;
+            font-size: 60px;
+            font-weight: 900;
+            text-align: center;
+            border: none;
+            border-bottom: 6px solid #fff;
+            background: transparent;
+            color: #fff;
+            padding: 5px;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        input[type="number"]:focus {
+            outline: none;
+            border-bottom-color: var(--warning);
+            text-shadow: 0 0 15px rgba(255,255,255,0.5);
+        }
+
+        /* Hide Number Spinners */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+
+        /* Feedback & Animations */
+        #feedback {
+            font-size: 24px;
+            font-weight: 800;
+            height: 35px;
+            margin: 15px 0 0 0;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .correct { color: var(--success) !important; opacity: 1 !important; text-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+        .incorrect { color: var(--danger) !important; opacity: 1 !important; text-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+        .freeze-text { color: var(--freeze) !important; opacity: 1 !important; text-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-15px); }
+            40%, 80% { transform: translateX(15px); }
+        }
+
+        .shake { animation: shake 0.4s ease-in-out; border-bottom-color: var(--danger) !important; color: var(--danger) !important; }
+
+        @keyframes pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); color: var(--success); }
+            100% { transform: scale(1); }
+        }
+
+        .pop { animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+        @keyframes float-up {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-50px); opacity: 0; }
+        }
+
+        .floating-text {
+            position: absolute;
+            font-size: 24px;
+            font-weight: 900;
+            pointer-events: none;
+            animation: float-up 1s forwards;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        <h1>Math Master</h1>
+        <div class="high-score-badge" id="hs-badge">High Score: 0</div>
+        
+        <div id="start-screen">
+            <p><strong>Survival Mode:</strong> Gain time for correct answers, lose time for mistakes. Prepare for missing variables!</p>
+            <div class="settings">
+                <label class="checkbox-wrapper"><input type="checkbox" id="op-add" checked> Addition (+)</label>
+                <label class="checkbox-wrapper"><input type="checkbox" id="op-sub" checked> Subtraction (-)</label>
+                <label class="checkbox-wrapper"><input type="checkbox" id="op-mul" checked> Multiplication (×)</label>
+                <label class="checkbox-wrapper"><input type="checkbox" id="op-div"> Division (÷)</label>
+            </div>
+            <p id="error-msg" style="color: var(--danger); font-weight: bold; height: 20px;"></p>
+            <button id="start-btn">Play Now</button>
+        </div>
+
+        <div id="game-screen" class="hidden">
+            <div class="stats-header">
+                <div class="stat-box" id="score-display">
+                    Score: 0
+                    <span id="level-display">Level 1</span>
+                </div>
+                <div class="stat-box" id="streak-display">
+                    🔥 x1
+                    <span id="time-display">45.0s</span>
+                </div>
+            </div>
+
+            <div class="timer-container">
+                <div id="timer-bar"></div>
+            </div>
+            
+            <div id="problem-container">
+                </div>
+            
+            <p id="feedback"></p>
+        </div>
+
+        <div id="end-screen" class="hidden">
+            <h2 style="font-size: 36px; margin-bottom: 0;">Out of Time!</h2>
+            <p style="font-size: 20px; color: #ddd;">Your final score:</p>
+            <p style="font-size: 60px; font-weight: 900; color: var(--warning); margin: 10px 0; text-shadow: 0 4px 10px rgba(0,0,0,0.5);" id="final-score">0</p>
+            <p id="accuracy-display" style="font-size: 18px; margin-bottom: 30px;"></p>
+            <button id="restart-btn">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        // --- Game State Variables ---
+        const START_TIME = 45.0; // Decimal for smoother UI
+        const MAX_TIME = 60.0;
+        let score = 0;
+        let timeLeft = START_TIME;
+        let timerId;
+        
+        let expectedAnswer = 0;
+        let streak = 0;
+        let multiplier = 1;
+        let level = 1;
+        let activeOperations = [];
+        
+        // Power-up States
+        let freezeTimeLeft = 0;
+
+        let highScore = localStorage.getItem('mathMasterHighScore') || 0;
+        let totalAnswered = 0;
+        let totalCorrect = 0;
+
+        // --- DOM Elements ---
+        const startScreen = document.getElementById('start-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const endScreen = document.getElementById('end-screen');
+        const startBtn = document.getElementById('start-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        
+        const problemContainer = document.getElementById('problem-container');
+        let answerInput; // Will be created dynamically
+        
+        const scoreDisplay = document.getElementById('score-display');
+        const levelDisplay = document.getElementById('level-display');
+        const streakDisplay = document.getElementById('streak-display');
+        const timeDisplay = document.getElementById('time-display');
+        const timerBar = document.getElementById('timer-bar');
+        const feedbackEl = document.getElementById('feedback');
+        
+        const finalScoreEl = document.getElementById('final-score');
+        const accuracyDisplay = document.getElementById('accuracy-display');
+        const errorMsg = document.getElementById('error-msg');
+        const hsBadge = document.getElementById('hs-badge');
+
+        // Init
+        hsBadge.textContent = `High Score: ${highScore}`;
+
+        // --- Event Listeners ---
+        startBtn.addEventListener('click', startGame);
+        restartBtn.addEventListener('click', () => {
+            endScreen.classList.add('hidden');
+            startScreen.classList.remove('hidden');
+        });
+
+        // Function to bind enter key to the dynamically created input
+        function bindInput() {
+            answerInput = document.getElementById('answer-input');
+            answerInput.addEventListener('keyup', function(event) {
+                if (event.key === 'Enter') checkAnswer();
+            });
+            setTimeout(() => answerInput.focus(), 50);
+        }
+
+        // --- Core Game Logic ---
+        function startGame() {
+            activeOperations = [];
+            if(document.getElementById('op-add').checked) activeOperations.push('+');
+            if(document.getElementById('op-sub').checked) activeOperations.push('-');
+            if(document.getElementById('op-mul').checked) activeOperations.push('×');
+            if(document.getElementById('op-div').checked) activeOperations.push('÷');
+
+            if (activeOperations.length === 0) {
+                errorMsg.textContent = "Please select at least one operation!";
+                return;
+            }
+            errorMsg.textContent = "";
+
+            score = 0; timeLeft = START_TIME; streak = 0; multiplier = 1; level = 1;
+            freezeTimeLeft = 0; totalAnswered = 0; totalCorrect = 0;
+            document.body.classList.remove('frozen');
+
+            updateScoreboard();
+            feedbackEl.className = '';
+            feedbackEl.textContent = '';
+            
+            startScreen.classList.add('hidden');
+            gameScreen.classList.remove('hidden');
+            
+            generateProblem();
+            // Update every 100ms for smoother timer bar
+            timerId = setInterval(updateTimer, 100); 
+        }
+
+        function generateProblem() {
+            const op = activeOperations[Math.floor(Math.random() * activeOperations.length)];
+            let n1, n2, equationResult;
+
+            let maxAddSub = 10 + (level * 5); 
+            let maxMulDiv = 5 + (level * 2);
+
+            // Generate raw math logic
+            if (op === '+') {
+                n1 = Math.floor(Math.random() * maxAddSub) + 1;
+                n2 = Math.floor(Math.random() * maxAddSub) + 1;
+                equationResult = n1 + n2;
+            } else if (op === '-') {
+                n1 = Math.floor(Math.random() * maxAddSub) + 1;
+                n2 = Math.floor(Math.random() * n1) + 1; 
+                equationResult = n1 - n2;
+            } else if (op === '×') {
+                n1 = Math.floor(Math.random() * maxMulDiv) + 1;
+                n2 = Math.floor(Math.random() * maxMulDiv) + 1;
+                equationResult = n1 * n2;
+            } else if (op === '÷') {
+                n2 = Math.floor(Math.random() * maxMulDiv) + 1; 
+                equationResult = Math.floor(Math.random() * maxMulDiv) + 1; 
+                n1 = n2 * equationResult; 
+            }
+
+            // Determine Problem Format (Advance Gameplay)
+            // 60% chance standard, 20% missing n1, 20% missing n2
+            const formatRoll = Math.random();
+            let htmlStr = "";
+
+            if (formatRoll < 0.6) {
+                // Standard: 5 + 5 = ?
+                expectedAnswer = equationResult;
+                htmlStr = `
+                    <span>${n1}</span>
+                    <span>${op}</span>
+                    <span>${n2}</span>
+                    <span>=</span>
+                    <input type="number" id="answer-input" autocomplete="off">
+                `;
+            } else if (formatRoll < 0.8) {
+                // Missing Num2: 5 + ? = 10
+                expectedAnswer = n2;
+                htmlStr = `
+                    <span>${n1}</span>
+                    <span>${op}</span>
+                    <input type="number" id="answer-input" autocomplete="off">
+                    <span>=</span>
+                    <span>${equationResult}</span>
+                `;
+            } else {
+                // Missing Num1: ? + 5 = 10
+                expectedAnswer = n1;
+                htmlStr = `
+                    <input type="number" id="answer-input" autocomplete="off">
+                    <span>${op}</span>
+                    <span>${n2}</span>
+                    <span>=</span>
+                    <span>${equationResult}</span>
+                `;
+            }
+
+            problemContainer.innerHTML = htmlStr;
+            bindInput();
+        }
+
+        function spawnFloatingText(text, isPositive) {
+            const el = document.createElement('div');
+            el.className = 'floating-text';
+            el.textContent = text;
+            el.style.color = isPositive ? 'var(--success)' : 'var(--danger)';
+            
+            // Random position near the top of the game container
+            const xOffset = (Math.random() - 0.5) * 100;
+            el.style.left = `calc(50% + ${xOffset}px)`;
+            el.style.top = '30%';
+            
+            document.querySelector('.game-container').appendChild(el);
+            setTimeout(() => el.remove(), 1000);
+        }
+
+        function checkAnswer() {
+            const userAnswer = parseInt(answerInput.value, 10);
+            if (isNaN(userAnswer)) return;
+
+            totalAnswered++;
+            answerInput.classList.remove('shake', 'pop');
+            void answerInput.offsetWidth; 
+
+            if (userAnswer === expectedAnswer) {
+                totalCorrect++;
+                streak++;
+                
+                multiplier = Math.min(1 + Math.floor(streak / 5), 5);
+                const pointsEarned = 10 * multiplier;
+                score += pointsEarned;
+
+                // Survival Time Mechanics
+                if (freezeTimeLeft <= 0) {
+                    timeLeft = Math.min(timeLeft + 2.0, MAX_TIME); // +2 Seconds
+                    spawnFloatingText("+2s", true);
+                }
+
+                // Time Freeze Power-up every 10 streaks
+                if (streak % 10 === 0) {
+                    freezeTimeLeft = 5.0; // 5 seconds of freeze
+                    document.body.classList.add('frozen');
+                    feedbackEl.textContent = "TIME FROZEN!";
+                    feedbackEl.className = 'freeze-text';
+                    spawnFloatingText("FREEZE!", true);
+                } else {
+                    feedbackEl.textContent = `+${pointsEarned}!`;
+                    feedbackEl.className = 'correct';
+                }
+
+                // Level up
+                const newLevel = Math.floor(score / 150) + 1;
+                if (newLevel > level) {
+                    level = newLevel;
+                }
+
+                answerInput.classList.add('pop');
+
+            } else {
+                streak = 0;
+                multiplier = 1;
+                
+                // Penalize Time & Score
+                if (freezeTimeLeft > 0) {
+                    freezeTimeLeft = 0; // Break freeze early on mistake
+                    document.body.classList.remove('frozen');
+                }
+                
+                timeLeft -= 4.0; // -4 Seconds penalty
+                score = Math.max(0, score - 15);
+                
+                spawnFloatingText("-4s", false);
+                feedbackEl.textContent = `Correct: ${expectedAnswer}`;
+                feedbackEl.className = 'incorrect';
+                answerInput.classList.add('shake');
+            }
+            
+            updateScoreboard();
+            generateProblem();
+        }
+
+        function updateScoreboard() {
+            scoreDisplay.innerHTML = `Score: ${score} <span id="level-display">Level ${level}</span>`;
+            
+            let emoji = '🔥';
+            if (freezeTimeLeft > 0) emoji = '❄️';
+            else if (streak >= 10) emoji = '⚡';
+            
+            streakDisplay.innerHTML = `${emoji} x${multiplier} <span id="time-display">${Math.max(0, timeLeft).toFixed(1)}s</span>`;
+        }
+
+        function updateTimer() {
+            // Check freeze state
+            if (freezeTimeLeft > 0) {
+                freezeTimeLeft -= 0.1;
+                if (freezeTimeLeft <= 0) {
+                    document.body.classList.remove('frozen');
+                }
+            } else {
+                timeLeft -= 0.1; // Deduct time
+            }
+            
+            // Update UI
+            timeDisplay.textContent = `${Math.max(0, timeLeft).toFixed(1)}s`;
+            
+            const percentage = Math.min((timeLeft / MAX_TIME) * 100, 100);
+            timerBar.style.width = `${percentage}%`;
+            
+            if (!document.body.classList.contains('frozen')) {
+                if (timeLeft <= 10) timerBar.style.backgroundColor = 'var(--danger)';
+                else if (timeLeft <= 20) timerBar.style.backgroundColor = 'var(--warning)';
+                else timerBar.style.backgroundColor = 'var(--success)';
+            }
+
+            if (timeLeft <= 0) {
+                endGame();
+            }
+        }
+
+        function endGame() {
+            clearInterval(timerId);
+            gameScreen.classList.add('hidden');
+            endScreen.classList.remove('hidden');
+            document.body.classList.remove('frozen');
+            
+            finalScoreEl.textContent = score;
+            
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('mathMasterHighScore', highScore);
+                hsBadge.textContent = `High Score: ${highScore}`;
+                finalScoreEl.innerHTML += `<br><span style="font-size: 20px; color: var(--success);">New High Score!</span>`;
+            }
+            
+            let accuracy = totalAnswered > 0 ? Math.round((totalCorrect / totalAnswered) * 100) : 0;
+            accuracyDisplay.textContent = `Accuracy: ${accuracy}% (${totalCorrect} / ${totalAnswered})`;
+        }
+    </script>
+</body>
+</html>
